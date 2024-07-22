@@ -1,0 +1,68 @@
+services:
+  traefik:
+    image: traefik:3.1.0
+    restart: unless-stopped
+    command:
+      - "--api.dashboard=true"
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.endpoint=unix:///var/run/docker.sock"
+      - "--providers.docker.watch=true"
+      - "--providers.docker.exposedByDefault=false"
+      - "--providers.file.filename=/etc/traefik/config.yml"
+      - "--providers.file.watch=true"
+      - "--log.level=INFO"
+      - "--log.filePath=/traefik/logs/traefik.log"
+      - "--accesslog.filepath=/traefik/logs/access.log"
+      - "--entryPoints.web.address=:80"
+      - "--entryPoints.web.forwardedHeaders.insecure"
+      - "--entryPoints.web.http.redirections.entryPoint.to=websecure"
+      - "--entryPoints.web.http.redirections.entryPoint.scheme=https"
+      - "--entryPoints.websecure.address=:443"
+      - "--entryPoints.websecure.forwardedHeaders.insecure"
+    networks:
+      - web
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./conf:/etc/traefik
+      - ./logs:/traefik/logs
+      - ./certs:/etc/certs
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.traefik.rule=Host(`traefik.docker.localhost`)"
+      - "traefik.http.routers.traefik.service=api@internal"
+      - "traefik.http.routers.traefik.tls=true"
+      - "traefik.http.routers.traefik.tls.domains[0].main=docker.localhost"
+      - "traefik.http.routers.traefik.tls.domains[0].sans=*.docker.localhost"
+  whoami:
+    # A container that exposes an API to show its IP address
+    image: containous/whoami
+    networks:
+      - web
+      # Here we define our settings for traefik how to proxy our service.
+    security_opt:
+      - no-new-privileges:true
+    labels:
+      # This is enableing treafik to proxy this service
+      - "traefik.enable=true"
+      # Here we have to define the URL
+      # More details https://doc.traefik.io/traefik/v2.0/routing/routers/#rule
+      - "traefik.http.routers.whoami.rule=Host(`whoami.docker.localhost`)"
+      # Here we define in wich network treafik can find this service
+      - "traefik.docker.network=web"
+      # This is the port that traefik should proxy
+      - "traefik.http.services.whoami.loadbalancer.server.port=80"
+      - "traefik.http.routers.whoami.entrypoints=websecure"
+
+      # Activation of TLS
+      - "traefik.http.routers.whoami.tls=true"
+    restart: always
+
+networks:
+  web:
+    external: true
+
+# echo "127.0.0.1 whoami.docker.localhost" | sudo tee -a /etc/hosts
