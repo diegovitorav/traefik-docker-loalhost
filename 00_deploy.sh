@@ -1,14 +1,7 @@
 #!/bin/bash
 
-export HOME_DIR="$PWD"
 
-rm -rf traefik/certs
-cd $HOME_DIR/scripts/openssl
-source gen_mkcert.sh
-mv $HOME_DIR/scripts/openssl/certs $HOME_DIR/traefik
-cd $HOME_DIR
-
-NETWORK_NAME="web"
+NETWORK_NAME="net-web"
 SUBNET="172.20.0.0/16"
 
 # Verifica se a rede já existe

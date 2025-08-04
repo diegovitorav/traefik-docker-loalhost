@@ -1,6 +1,6 @@
 services:
   traefik:
-    image: traefik:3.1.0
+    image: traefik:v3.5.0
     restart: unless-stopped
     command:
       - "--api.dashboard=true"
@@ -21,7 +21,7 @@ services:
       - "--entryPoints.websecure.address=:443"
       - "--entryPoints.websecure.forwardedHeaders.insecure"
     networks:
-      - web
+      - net-web
     ports:
       - "80:80"
       - "443:443"
@@ -41,7 +41,7 @@ services:
     # A container that exposes an API to show its IP address
     image: containous/whoami
     networks:
-      - web
+      - net-web
       # Here we define our settings for traefik how to proxy our service.
     security_opt:
       - no-new-privileges:true
@@ -52,7 +52,7 @@ services:
       # More details https://doc.traefik.io/traefik/v2.0/routing/routers/#rule
       - "traefik.http.routers.whoami.rule=Host(`whoami.docker.localhost`)"
       # Here we define in wich network treafik can find this service
-      - "traefik.docker.network=web"
+      - "traefik.docker.network=net-web"
       # This is the port that traefik should proxy
       - "traefik.http.services.whoami.loadbalancer.server.port=80"
       - "traefik.http.routers.whoami.entrypoints=websecure"
@@ -62,7 +62,7 @@ services:
     restart: always
 
 networks:
-  web:
+  net-web:
     external: true
 
 # echo "127.0.0.1 whoami.docker.localhost" | sudo tee -a /etc/hosts
